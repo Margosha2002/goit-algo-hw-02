@@ -10,6 +10,7 @@ from secrets import token_urlsafe
 
 CHECK_REQUESTS_INTERVAL = 3
 CREATE_REQUEST_INTERVAL = 3
+CLEAR_PROCESSED_REQUEST_INTERVAL = 3
 
 
 class RequestStatus(str, Enum):
@@ -38,12 +39,16 @@ class Request:
 
 class App:
     def __init__(
-        self, initial_requests: list[Request] = list(), mode: AppMode = AppMode.AUTO
+        self,
+        initial_requests: list[Request] = list(),
+        mode: AppMode = AppMode.AUTO,
+        auto_remove: bool = True,
     ) -> None:
         self.__threads: list[threading.Thread] = []
         self.__requests: list[Request] = []
         self.__queue = Queue()
         self._mode = mode
+        self._auto_remove = auto_remove
         self._run = True
         for request in initial_requests:
             self.__requests.append(request)
@@ -51,10 +56,20 @@ class App:
 
     def run(self):
         print("App is ready to run...")
+        print(
+            """
+Help Section:
+ - exit: Exit App
+ - print_all_requests: Shows table of requests
+ - print_complete_requests: Shows table of processed requests              
+"""
+        )
         self.__threads.append(threading.Thread(target=self.__process_requests))
         self.__threads.append(threading.Thread(target=self.__get_new_requests))
         if self._mode == AppMode.AUTO:
             self.__threads.append(threading.Thread(target=self.__auto_requests))
+        if self._auto_remove:
+            self.__threads.append(threading.Thread(target=self.__remove_processed))
         for thread in self.__threads:
             thread.start()
         for thread in self.__threads:
@@ -108,6 +123,15 @@ class App:
             self.__requests.append(request)
             self.__queue.put(request)
             sleep(CREATE_REQUEST_INTERVAL)
+
+    def __remove_processed(self):
+        while self._run:
+            self.__requests = [
+                request
+                for request in self.__requests
+                if request.state != RequestStatus.PROCESSED
+            ]
+            sleep(CLEAR_PROCESSED_REQUEST_INTERVAL)
 
 
 app = App()

@@ -6,3 +6,14 @@ def is_palindrome(text: str) -> bool:
         if text_deque.pop() != text_deque.popleft():
             return False
     return True
+
+
+def print_result(text: str):
+    print(f'Is test "{text}" palindrome: {is_palindrome(text)}')
+
+
+print_result("Hello")
+print_result("Око")
+print_result("Дід")
+print_result("Пилип")
+print_result("Light Yagami")
